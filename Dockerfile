@@ -1,15 +1,27 @@
-FROM python:3.6
+FROM python:2.7
 
-# Create app directory
-WORKDIR /app
+# Creating Application Source Code Directory
+RUN mkdir -p /usr/src/app
 
-# Install app dependencies
-COPY src/requirements.txt ./
+# Setting Home Directory for containers
+WORKDIR /usr/src/app
 
-RUN pip install -r requirements.txt
+# Installing python dependencies
+COPY requirements.txt /usr/src/app/
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Bundle app source
-COPY src /app
+# Copying src code to Container
+COPY . /usr/src/app
 
-EXPOSE 8080
-CMD [ "python", "server.py" ]
+# Application Environment variables
+#ENV APP_ENV development
+ENV PORT 8080
+
+# Exposing Ports
+EXPOSE $PORT
+
+# Setting Persistent data
+VOLUME ["/app-data"]
+
+# Running Python Application
+CMD gunicorn -b :$PORT -c gunicorn.conf.py main:app
