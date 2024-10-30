@@ -1,49 +1,43 @@
-resource "aws_vpc" "this" {
-  for_each             = var.vpc_parameters
-  cidr_block           = each.value.cidr_block
-  enable_dns_support   = each.value.enable_dns_support
-  enable_dns_hostnames = each.value.enable_dns_hostnames
-  tags = merge(each.value.tags, {
-    Name : each.key
-  })
-}
+resource "aws_vpc" "main-vpc" {
+  cidr_block       = "10.0.0.0/16"
+  instance_tenancy = "default"
 
-resource "aws_subnet" "this" {
-  for_each   = var.subnet_parameters
-  vpc_id     = aws_vpc.this[each.value.vpc_name].id
-  cidr_block = each.value.cidr_block
-  tags = merge(each.value.tags, {
-    Name : each.key
-  })
-}
-
-resource "aws_internet_gateway" "this" {
-  for_each = var.igw_parameters
-  vpc_id   = aws_vpc.this[each.value.vpc_name].id
-  tags = merge(each.value.tags, {
-    Name : each.key
-  })
-}
-
-resource "aws_route_table" "this" {
-  for_each = var.rt_parameters
-  vpc_id   = aws_vpc.this[each.value.vpc_name].id
-  tags = merge(each.value.tags, {
-    Name : each.key
-  })
-
-  dynamic "route" {
-    for_each = each.value.routes
-    content {
-      cidr_block = route.value.cidr_block
-      gateway_id = route.value.use_igw ? aws_internet_gateway.this[route.value.gateway_id].id : route.value.gateway_id
-    }
+  tags = {
+    Name = "main"
   }
 }
 
-resource "aws_route_table_association" "this" {
-  for_each       = var.rt_association_parameters
-  subnet_id      = aws_subnet.this[each.value.subnet_name].id
-  route_table_id = aws_route_table.this[each.value.rt_name].id
+resource "aws_subnet" "main-subnet" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.1.0/24"
+
+  tags = {
+    Name = "Main"
+  }
 }
 
+resource "aws_security_group" "allow_tls" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic and all outbound traffic"
+  vpc_id      = aws_vpc.main.id
+
+  tags = {
+    Name = "allow_tls"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_tls_ipv4" {
+  security_group_id = aws_security_group.allow_tls.id
+  cidr_ipv4         = aws_vpc.main.cidr_block
+  from_port         = 443
+  ip_protocol       = "tcp"
+  to_port           = 443
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_tls_ipv6" {
+  security_group_id = aws_security_group.allow_tls.id
+  cidr_ipv6         = aws_vpc.main.ipv6_cidr_block
+  from_port         = 443
+  ip_protocol       = "tcp"
+  to_port           = 443
+}
