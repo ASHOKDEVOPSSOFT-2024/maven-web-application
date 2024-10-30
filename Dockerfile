@@ -1,2 +1,15 @@
-FROM tomcat:9.0-jdk11
-COPY target/maven-web-application.war /usr/local/tomcat/webapps/maven-web-application.war
+FROM python:3.6
+
+# Create app directory
+WORKDIR /app
+
+# Install app dependencies
+COPY src/requirements.txt ./
+
+RUN pip install -r requirements.txt
+
+# Bundle app source
+COPY src /app
+
+EXPOSE 8080
+CMD [ "python", "server.py" ]
