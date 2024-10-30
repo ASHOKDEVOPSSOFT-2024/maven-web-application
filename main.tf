@@ -46,4 +46,4 @@ resource "aws_route_table_association" "this" {
   subnet_id      = aws_subnet.this[each.value.subnet_name].id
   route_table_id = aws_route_table.this[each.value.rt_name].id
 }
-With the above configuration, I can create as ma
+
